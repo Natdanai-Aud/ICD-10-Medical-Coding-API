@@ -33,7 +33,9 @@ without this, common codes such as `E11.9` would be missing.
 
 ## Quick start (Windows / Linux, local Python)
 
-Requirements: Python 3.12, `uv`, Docker (for PostgreSQL), and the three PDFs in `pdf/`.
+Requirements: Python 3.12, `uv`, Docker (for PostgreSQL), and licensed copies of
+the three source PDFs. The PDFs are **not** in this repository: put them in a
+local `pdf/` directory (gitignored) or point `PDF_DIR` at another location.
 
 ```bash
 uv sync
@@ -53,7 +55,9 @@ docker compose -f docker/compose.yaml up -d --build
 docker compose -f docker/compose.yaml exec api icd10 import-icd
 ```
 
-The API container serves `http://localhost:8000`.
+The API container serves `http://localhost:8000`. To run the importer inside the
+container, mount your licensed PDFs read-only at `/app/pdf` (or set `PDF_DIR`);
+they are not part of the image.
 
 ## API surface
 
@@ -92,6 +96,7 @@ Environment variables (`.env` is loaded automatically):
 | `ALLOWED_IPS` | empty | comma-separated IPs/CIDRs; empty = any |
 | `MAX_BATCH_LOOKUP` | `500` | |
 | `TESSERACT_CMD` | UB Mannheim path | OCR only |
+| `PDF_DIR` | `./pdf` | local licensed source PDFs (never committed) |
 
 Auth uses `X-API-Key`; there is deliberately no OAuth (HIS-to-HIS integration).
 
@@ -107,13 +112,16 @@ Auth uses `X-API-Key`; there is deliberately no OAuth (HIS-to-HIS integration).
 ## Data pipeline
 
 ```
-pdf/Vol1 ── pdftotext -layout ──► parse_tabular.py ──► 22 chapters / 265 blocks / 12,187 codes
-pdf/Vol3 ── PyMuPDF coordinates ─► parse_index.py ───► 60,400 index terms
+<PDF_DIR>/Vol1 ── pdftotext -layout ──► parse_tabular.py ──► 22 chapters / 265 blocks / 12,187 codes
+<PDF_DIR>/Vol3 ── PyMuPDF coordinates ─► parse_index.py ───► 60,400 index terms
                                           │
                                           ▼
                                     load.py (PostgreSQL)
-pdf/Guideline 2017 ── Tesseract + OpenCV ─► parse_cases.py ─► case_example tables
+<PDF_DIR>/Guideline 2017 ── Tesseract + OpenCV ─► parse_cases.py ─► case_example tables
 ```
+
+`<PDF_DIR>` is local and untracked; the licensed PDFs are not distributed with
+this repository.
 
 QA gates enforced by tests:
 
@@ -171,6 +179,6 @@ src/icd10/
   importer/       Vol1 parser, Vol3 index parser, loader, OCR pipeline
   cli.py          init-db / import-icd / export-openapi / serve
 docker/           Dockerfile + compose (PostgreSQL + API)
-pdf/              source PDFs (not redistributed)
+pdf/              local licensed PDFs (gitignored; supply your own)
 tests/            unit, parser QA, API contract tests
 ```

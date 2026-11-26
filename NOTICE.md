@@ -20,8 +20,9 @@ WHO contact: https://www.who.int/classifications/icd/en/
 ## Thai Standard Coding Guidelines 2017
 
 The case examples are extracted from the Thai Standard Coding Guidelines 2017
-(`pdf/Guideline 2017.pdf`). Copyright remains with the original publisher. The
-extracted case text is kept for internal coding-reference use only.
+(a locally supplied, licensed copy of the PDF; not included in this repository).
+Copyright remains with the original publisher. The extracted case text is kept
+for internal coding-reference use only.
 
 ## Software
 
