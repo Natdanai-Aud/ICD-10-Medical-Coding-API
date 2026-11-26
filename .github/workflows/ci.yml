@@ -1,0 +1,47 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --frozen
+      - run: uv run ruff check .
+      - run: uv run pytest tests/test_units.py -q
+
+  data-and-api:
+    # The licensed PDFs are not committed to public repositories, so this job is
+    # opt-in. Run it on an internal runner that has pdf/ available.
+    if: vars.RUN_DATA_TESTS == 'true'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: icd10
+          POSTGRES_PASSWORD: icd10
+          POSTGRES_DB: icd10
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U icd10 -d icd10"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql+asyncpg://icd10:icd10@localhost:5432/icd10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --frozen
+      - run: uv run icd10 init-db
+      - run: uv run icd10 import-icd
+      - run: uv run pytest -q
+      - run: uv run icd10 export-openapi --output "ICD-10 Medical Coding API.json"
+      - run: git diff --exit-code -- "ICD-10 Medical Coding API.json"

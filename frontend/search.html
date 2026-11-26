@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ICD-10 Guideline Case Search</title>
+  <style>
+    :root {
+      --bg: #f4f7f5;
+      --panel: #ffffff;
+      --ink: #17211d;
+      --muted: #5f6f68;
+      --line: #dce5e0;
+      --accent: #0f766e;
+      --accent-soft: #e6f4f1;
+      --danger: #b42318;
+      --radius: 14px;
+      --shadow: 0 8px 24px rgba(23, 33, 29, 0.06);
+      font-family: "Segoe UI", "Noto Sans Thai", Tahoma, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: linear-gradient(180deg, #eef5f2 0%, var(--bg) 180px); color: var(--ink); }
+    .wrap { max-width: 1040px; margin: 0 auto; padding: 32px 20px 48px; }
+    .hero { margin-bottom: 20px; }
+    h1 { margin: 0; font-size: clamp(1.6rem, 2.8vw, 2.2rem); letter-spacing: -0.02em; }
+    .sub { color: var(--muted); margin-top: 8px; line-height: 1.5; }
+    .panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+    .search { padding: 20px; display: grid; gap: 12px; }
+    .row { display: grid; grid-template-columns: 1fr auto; gap: 10px; }
+    label { font-size: 0.92rem; color: var(--muted); font-weight: 600; }
+    input {
+      width: 100%; padding: 14px 16px; border-radius: 10px; border: 1px solid #cfdad4;
+      font-size: 1rem; color: var(--ink); background: #fff;
+    }
+    input:focus { outline: 3px solid #cce8e3; border-color: var(--accent); }
+    button {
+      padding: 0 20px; border: 0; border-radius: 10px; background: var(--accent); color: #fff;
+      font-size: 0.95rem; font-weight: 700; cursor: pointer; min-height: 48px;
+    }
+    button:hover { filter: brightness(0.96); }
+    button:disabled { opacity: 0.6; cursor: wait; }
+    .filters { padding: 0 20px 18px; }
+    .filters-label { font-size: 0.82rem; color: var(--muted); margin-bottom: 8px; font-weight: 700; }
+    .filter-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+    .filter-chip { position: relative; }
+    .filter-chip input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+    .filter-chip span {
+      display: inline-flex; align-items: center; padding: 7px 12px; border-radius: 999px;
+      border: 1px solid var(--line); background: #fff; color: var(--muted); font-size: 0.84rem;
+      cursor: pointer; user-select: none; transition: all .15s ease;
+    }
+    .filter-chip input:checked + span { background: var(--accent-soft); color: #0b5f59; border-color: #9fd0c8; font-weight: 700; }
+    .filter-chip input:focus-visible + span { outline: 3px solid #cce8e3; outline-offset: 1px; }
+    .meta { padding: 0 20px 18px; color: var(--muted); font-size: 0.9rem; }
+    .status { padding: 18px 20px; border-top: 1px solid var(--line); color: var(--muted); }
+    .status.error { color: var(--danger); background: #fff8f7; }
+    .results { padding: 8px 20px 20px; display: grid; gap: 12px; }
+    .card { border: 1px solid var(--line); border-radius: 12px; padding: 16px; background: #fff; }
+    .head { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin-bottom: 10px; }
+    .example { font-weight: 800; color: var(--accent); background: var(--accent-soft); padding: 4px 10px; border-radius: 999px; font-size: 0.88rem; }
+    .codes { display: flex; flex-wrap: wrap; gap: 6px; }
+    .code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 0.85rem; background: #f1f5f3; border: 1px solid #dfe7e2; padding: 3px 8px; border-radius: 7px; }
+    .scenario { margin: 0; line-height: 1.7; white-space: pre-wrap; }
+    .label { font-size: 0.78rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 700; margin-bottom: 6px; }
+    .lines { margin-top: 12px; display: grid; gap: 8px; }
+    .line-row { display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; background: #f8fbfa; border: 1px solid #e6eeeb; border-radius: 10px; }
+    .role-badge { flex: 0 0 auto; display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; border: 1px solid transparent; white-space: nowrap; }
+    .role-principal { background: #e8f1ff; color: #1d4ed8; border-color: #c7dafe; }
+    .role-comorbidity { background: #fff4db; color: #92400e; border-color: #fde68a; }
+    .role-complication { background: #ffe8e8; color: #b42318; border-color: #fecaca; }
+    .role-external_cause { background: #f3e8ff; color: #7e22ce; border-color: #e9d5ff; }
+    .role-procedure { background: #e7f8ef; color: #166534; border-color: #bbf7d0; }
+    .role-other { background: #f1f5f9; color: #475569; border-color: #cbd5e1; }
+    .line-body { min-width: 0; flex: 1; }
+    .line-code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-weight: 700; color: #0b5f59; font-size: 0.84rem; margin-right: 6px; }
+    .line-text { font-size: 0.9rem; line-height: 1.55; color: #24312d; word-break: break-word; }
+    .empty { padding: 28px 20px; color: var(--muted); text-align: center; border-top: 1px solid var(--line); }
+    @media (max-width: 700px) { .row { grid-template-columns: 1fr; } button { width: 100%; } .line-row { flex-direction: column; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <h1>ICD-10 Guideline Case Search</h1>
+      <div class="sub">ค้นหา <strong>scenario</strong> จาก Standard Coding Guidelines 2017 แล้วดู <strong>example_no</strong> และรหัสวินิจฉัยที่เกี่ยวข้อง</div>
+    </div>
+
+    <div class="panel">
+      <form id="searchForm" class="search">
+        <label for="q">ค้นหาสถานการณ์ / Scenario text</label>
+        <div class="row">
+          <input id="q" name="q" type="search" placeholder="เช่น ผู้ป่วยซ้อนท้ายรถจักรยานยนต์..." autocomplete="off" />
+          <button id="btn" type="submit">ค้นหา / Search</button>
+        </div>
+      </form>
+      <div class="filters" aria-label="ตัวกรองบทบาทการวินิจฉัย">
+        <div class="filters-label">กรองตามบทบาทวินิจฉัย (เลือกได้หลายอัน, ไม่เลือก = ทั้งหมด)</div>
+        <div class="filter-chips" id="roleFilters">
+          <label class="filter-chip"><input type="checkbox" name="role" value="principal"><span>การวินิจฉัยหลัก</span></label>
+          <label class="filter-chip"><input type="checkbox" name="role" value="comorbidity"><span>การวินิจฉัยร่วม</span></label>
+          <label class="filter-chip"><input type="checkbox" name="role" value="complication"><span>โรคแทรก</span></label>
+          <label class="filter-chip"><input type="checkbox" name="role" value="external_cause"><span>สาเหตุภายนอก</span></label>
+          <label class="filter-chip"><input type="checkbox" name="role" value="procedure"><span>หัตถการ/การผ่าตัด</span></label>
+          <label class="filter-chip"><input type="checkbox" name="role" value="other"><span>อื่นๆ</span></label>
+        </div>
+      </div>
+      <div id="meta" class="meta">Data source: <code>frontend/data/guidelineCases.js</code> (draft ชั่วคราว, 1-0 ถึง 3-22, role remap ยังต้องรีวิว)</div>
+      <div id="status" class="status">พิมพ์คำค้นแล้วกด Search เพื่อดูตัวอย่างเคส</div>
+      <div id="results" class="results" hidden></div>
+      <div id="empty" class="empty" hidden>ไม่พบ case example ที่ตรงกับคำค้น</div>
+    </div>
+  </div>
+
+  <script src="./data/guidelineCases.js"></script>
+  <script>
+    const form = document.getElementById("searchForm");
+    const input = document.getElementById("q");
+    const btn = document.getElementById("btn");
+    const statusEl = document.getElementById("status");
+    const resultsEl = document.getElementById("results");
+    const emptyEl = document.getElementById("empty");
+    const roleInputs = Array.from(document.querySelectorAll('input[name="role"]'));
+
+    const ROLE_LABELS = {
+      principal: "การวินิจฉัยหลัก",
+      comorbidity: "การวินิจฉัยร่วม",
+      complication: "โรคแทรก",
+      external_cause: "สาเหตุภายนอก",
+      procedure: "หัตถการ/การผ่าตัด",
+      other: "อื่นๆ",
+    };
+
+    function setStatus(msg, isError = false) {
+      statusEl.textContent = msg;
+      statusEl.className = "status" + (isError ? " error" : "");
+    }
+
+    function selectedRoles() {
+      return roleInputs.filter((i) => i.checked).map((i) => i.value);
+    }
+
+    function uniqueCodes(item) {
+      const seen = new Set();
+      const codes = [];
+      for (const line of item.lines || []) {
+        const code = (line.code || "").trim();
+        if (code && !seen.has(code)) { seen.add(code); codes.push(code); }
+      }
+      return codes;
+    }
+
+    function makeRoleBadge(role) {
+      const badge = document.createElement("span");
+      const safeRole = ROLE_LABELS[role] ? role : "other";
+      badge.className = `role-badge role-${safeRole}`;
+      badge.textContent = ROLE_LABELS[safeRole] || "อื่นๆ";
+      return badge;
+    }
+
+    function render(items, total) {
+      resultsEl.innerHTML = "";
+      resultsEl.hidden = items.length === 0;
+      emptyEl.hidden = items.length !== 0;
+      for (const item of items) {
+        const codes = uniqueCodes(item);
+        const card = document.createElement("article");
+        card.className = "card";
+
+        const head = document.createElement("div");
+        head.className = "head";
+        const ex = document.createElement("span");
+        ex.className = "example";
+        ex.textContent = `ตัวอย่างที่ ${item.exampleNo || "-"}`;
+        head.appendChild(ex);
+
+        const codesWrap = document.createElement("div");
+        codesWrap.className = "codes";
+        if (codes.length === 0) {
+          const c = document.createElement("span");
+          c.className = "code";
+          c.textContent = "NO CODE";
+          codesWrap.appendChild(c);
+        } else {
+          for (const code of codes) {
+            const c = document.createElement("span");
+            c.className = "code";
+            c.textContent = code;
+            codesWrap.appendChild(c);
+          }
+        }
+        head.appendChild(codesWrap);
+
+        const label = document.createElement("div");
+        label.className = "label";
+        label.textContent = "Scenario / สถานการณ์";
+
+        const p = document.createElement("p");
+        p.className = "scenario";
+        p.textContent = item.scenarioTh || "(ไม่มี scenario)";
+
+        card.append(head, label, p);
+
+        const lines = Array.isArray(item.lines) ? item.lines : [];
+        if (lines.length > 0) {
+          const linesLabel = document.createElement("div");
+          linesLabel.className = "label";
+          linesLabel.style.marginTop = "12px";
+          linesLabel.textContent = "Diagnosis lines / บรรทัดวินิจฉัย";
+          const linesWrap = document.createElement("div");
+          linesWrap.className = "lines";
+          for (const line of lines) {
+            const row = document.createElement("div");
+            row.className = "line-row";
+            row.appendChild(makeRoleBadge(line.role));
+
+            const body = document.createElement("div");
+            body.className = "line-body";
+            const code = document.createElement("span");
+            code.className = "line-code";
+            code.textContent = line.code || "-";
+            const text = document.createElement("span");
+            text.className = "line-text";
+            text.textContent = line.diagnosisText || "";
+            body.append(code, text);
+            row.appendChild(body);
+            linesWrap.appendChild(row);
+          }
+          card.append(linesLabel, linesWrap);
+        }
+
+        resultsEl.appendChild(card);
+      }
+      setStatus(`พบ ${total} รายการ | แสดง ${items.length} รายการ`);
+    }
+
+    function search() {
+      const q = input.value.trim().toLowerCase();
+      const roles = selectedRoles();
+      btn.disabled = true;
+      setStatus("กำลังค้นหา...");
+      resultsEl.hidden = true; emptyEl.hidden = true; resultsEl.innerHTML = "";
+      try {
+        const data = Array.isArray(guidelineCases) ? guidelineCases : [];
+        const matched = data.filter((item) => {
+          const textMatch = !q || (item.scenarioTh || "").toLowerCase().includes(q);
+          if (!textMatch) return false;
+          if (roles.length === 0) return true;
+          const lines = Array.isArray(item.lines) ? item.lines : [];
+          return lines.some((l) => roles.includes(l.role));
+        });
+        const items = matched.slice(0, 20);
+        render(items, matched.length);
+      } catch (err) {
+        setStatus(`ค้นหาไม่สำเร็จ: ${err.message}`, true);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    form.addEventListener("submit", (e) => { e.preventDefault(); search(); });
+    roleInputs.forEach((i) => i.addEventListener("change", () => {
+      // auto-refresh when user already searched or has filter active
+      if (input.value.trim() || selectedRoles().length > 0 || !resultsEl.hidden) search();
+    }));
+  </script>
+</body>
+</html>
