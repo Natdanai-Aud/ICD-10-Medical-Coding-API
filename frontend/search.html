@@ -121,6 +121,11 @@
     const emptyEl = document.getElementById("empty");
     const roleInputs = Array.from(document.querySelectorAll('input[name="role"]'));
 
+    if (typeof guidelineCases === "undefined") {
+      setStatus("ไม่พบไฟล์ข้อมูล frontend/data/guidelineCases.js — ตรวจสอบว่าไฟล์ถูก commit และ GitHub Pages rebuild แล้ว", true);
+      btn.disabled = true;
+    }
+
     const ROLE_LABELS = {
       principal: "การวินิจฉัยหลัก",
       comorbidity: "การวินิจฉัยร่วม",
